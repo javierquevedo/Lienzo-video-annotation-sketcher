@@ -1,0 +1,375 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" 
+
+	horizontalScrollPolicy="off" verticalScrollPolicy="off"
+	creationComplete="onCreationComplete()">
+	<mx:Metadata>
+	    [Event( name="play", type="net.ximpel.events.PlayerEvent") ]
+   		[Event( name="pause", type="net.ximpel.events.PlayerEvent") ]
+   		[Event( name="stop", type="net.ximpel.events.PlayerEvent") ]
+	</mx:Metadata>
+	<mx:Script>
+		<![CDATA[
+			import mx.managers.CursorManager;
+			import mx.binding.utils.BindingUtils;
+			import mx.effects.Resize;
+			import mx.events.EffectEvent;
+			import mx.effects.Fade;
+			import mx.controls.Alert;
+			import mx.events.StateChangeEvent;
+			import mx.events.CuePointEvent;
+			import mx.controls.Image;
+			import mx.collections.ArrayCollection;
+			import mx.utils.ObjectProxy;
+			import mx.controls.videoClasses.CuePointManager;
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+			import mx.rpc.http.HTTPService;
+			import mx.core.Application;
+			import mx.managers.PopUpManager;
+
+			import net.ximpel.classes.Helper;
+			import net.ximpel.classes.Annotation;
+			import net.ximpel.events.PlayerEvent;	
+					
+			[Bindable]
+			public var annotations : Array = new Array();
+			
+			[Bindable]
+			public var cuePoints : Array = new Array();
+			
+			[Bindable]
+			public var authors : Dictionary = new Dictionary();
+			
+			private var annotationCount : Number = 0;
+			private static const END_TAG : String = "END_ANNOT";
+			private var loadingView : LoadingView = new LoadingView();
+			private var annotationsHeight : Number;
+			private var errorOcurred : Boolean = false;
+			private function onCreationComplete():void{
+				annotationsHeight = annotationsBox.height;
+				getAnnotations(Helper.getAnnotationsServerUrl(), Helper.getClipId());
+			}
+			
+			private function updateQueuePoints():void{
+				CuePointManager(videoDisplay.cuePointManager).removeAllCuePoints();
+				for each (var annotation : Annotation in annotations) {
+					if (annotation.visible == false)
+						continue;
+					// Create and add cuePoint
+					var cuePoint : Object = new Object();
+					cuePoint["name"]=annotation.id;
+					cuePoint["time"]=annotation.startTime;
+					
+					if (!isNaN(cuePoint["time"])){
+						if (annotation.startTime == 0)
+							addAnnotationToDisplay(annotation.id);
+						CuePointManager(videoDisplay.cuePointManager).addCuePoint(cuePoint);
+					}
+					
+					// Cuepoint to remove the annotation
+					cuePoint = new Object();
+					cuePoint["name"]=annotation.id+END_TAG;
+					if (annotation.duration > 0)
+						cuePoint["time"]=annotation.startTime+annotation.duration-annotation.fadeDuration;
+					if (!isNaN(cuePoint["time"]))
+						CuePointManager(videoDisplay.cuePointManager).addCuePoint(cuePoint);
+				}
+			}
+			
+			private function addAnnotation(annotationInfo : Object):void{
+				
+				var annotation : Annotation = new Annotation(annotationInfo);
+				annotations.push(annotation);
+				annotationCount--;
+				
+				if (annotationCount == 0){
+					//Done, set the grid's dataprovider and the cuePoints
+					annotations.sortOn("startTime");
+					annotationsGrid.dataProvider = annotations;
+					this.updateQueuePoints();
+
+				}
+			}
+			
+			public function getAnnotations(annotationsServerUrl:String, clipId : String):void{
+				loadingProgress.visible=true;
+				annotations = new Array();
+				CursorManager.setBusyCursor();
+		 	  	//annotationsLabel.text="Loading ...";
+		 	  	
+				//loadingView.loadingLabel.text = "Loading annotations";
+				var url : String = annotationsServerUrl + "/clips/" + Helper.getClipId() + "/annotations.xml"
+				var httpService : HTTPService = new HTTPService();
+				httpService.url = url;
+				httpService.method = "GET";
+				httpService.addEventListener(ResultEvent.RESULT, onGetAnnotationsResult);
+				httpService.addEventListener(FaultEvent.FAULT, onGetAnnotationsFault);
+//				httpService.addEventListener(
+				httpService.send();
+			}
+			
+			private function getAnnotation(annotationInfo : Object, annotationsServerUrl : String, clipId : String):void{
+				var url : String = annotationsServerUrl + "/clips/" + Helper.getClipId() + "/annotations/"+annotationInfo["id"]+".xml";
+				var httpService : HTTPService = new HTTPService();
+				httpService.url = url;
+				httpService.method = "GET";
+				httpService.addEventListener(ResultEvent.RESULT, onGetAnnotationResult);
+				httpService.addEventListener(FaultEvent.FAULT, onGetAnnotationFault);
+				httpService.send();
+				
+			}
+			
+			private function onGetAnnotationsResult(event:ResultEvent):void{
+				var httpService : HTTPService = event.currentTarget as HTTPService;
+				// Comment because of unresolved problems with Flex 4 Gumbo 
+				//httpService.removeEventListener(ResultEvent.RESULT, onGetAnnotationsResult);
+				//httpService.removeEventListener(FaultEvent.FAULT, onGetAnnotationsFault);
+				
+				var annotations : ArrayCollection;
+				// No Annotations for this clip
+				if (event.result.annotations == null){
+					loadingProgress.visible=false;
+					CursorManager.removeBusyCursor();
+					return;
+				}
+				annotations = event.result.annotations.annotation as ArrayCollection;
+				if (!annotations)
+					annotations = new ArrayCollection(new Array(event.result.annotations.annotation));
+
+					
+				annotationCount = annotations.length;
+				loadingProgress.maximum = annotations.length;
+				for (var annotationIterator : Object in annotations){
+					var annotationInfo : Object = annotations[annotationIterator];
+					getAnnotation(annotationInfo, Helper.getAnnotationsServerUrl(), Helper.getClipId());	
+				}
+			}
+			
+			private function onGetAnnotationsFault(event:FaultEvent):void{
+				annotationCount--;
+				CursorManager.removeBusyCursor();			
+				errorOcurred = true;
+				Alert.show("Could not get annotations", "Warning");
+			}
+			
+			private function onGetAnnotationResult(event:ResultEvent):void{
+				var httpService : HTTPService = event.currentTarget as HTTPService;
+				var annotationInfo : Object = event.result.annotation;
+				addAnnotation(annotationInfo);	
+				loadingProgress.setProgress(loadingProgress.maximum - annotationCount, loadingProgress.maximum);
+				if (annotationCount == 0){
+					loadingProgress.visible=false;
+					CursorManager.removeBusyCursor();
+				}
+			}
+			
+			private function onGetAnnotationFault(event:FaultEvent):void{
+				var httpService : HTTPService = event.currentTarget as HTTPService;
+				httpService.removeEventListener(ResultEvent.RESULT, onGetAnnotationResult);
+				httpService.removeEventListener(FaultEvent.FAULT, onGetAnnotationFault);
+				if (errorOcurred == true)
+					return;
+				errorOcurred = true;
+				Alert.show("There was an error obtaining an annotation");
+				loadingProgress.visible=false;
+				CursorManager.removeBusyCursor();			
+			}
+			
+			private function isThisAnnotation(element:*, index:int, arr:Array):Boolean {
+            	return (element is Number);
+        	}
+			
+			private function onCuePoint(event:CuePointEvent):void{
+					
+					if (event.cuePointName.indexOf(END_TAG) < 0)
+						addAnnotationToDisplay(event.cuePointName);
+					else
+						removeAnnotationFromDisplay(event.cuePointName);
+			}
+			
+			
+			private function onFadeInEnd(event:Event):void{
+				var fade : Fade = event.currentTarget as Fade;
+				fade.removeEventListener(EffectEvent.EFFECT_END, onFadeInEnd);
+				
+			}
+			
+			private function onFadeOutEnd(event:Event):void{
+				var fade : Fade = event.currentTarget as Fade;
+				fade.removeEventListener(EffectEvent.EFFECT_END, onFadeOutEnd);
+				try{
+					annotationsCanvas.removeChild(Image(fade.target));
+					}
+				catch (error:Error){
+					//trace("<Error> " + error.message);
+				}
+			}
+			
+			
+			private function addAnnotationToDisplay(name : String):void{
+				for (var annotationIterator : Object in annotations){
+					var annotation : Annotation = annotations[annotationIterator] as Annotation;
+					if (annotation.id == name){
+						annotationsCanvas.addChild(annotation.image);
+						if (annotation.fadeDuration > 0){
+							var fade : Fade = new Fade()
+							fade.duration = annotation.fadeDuration*1000;
+							fade.alphaFrom=0.0;
+							fade.alphaTo=annotation.alpha;
+							fade.addEventListener(EffectEvent.EFFECT_END, onFadeInEnd);
+							fade.target = annotation.image;
+							fade.play();
+						}						
+					}
+				}		
+			}			
+
+			private function removeAnnotationFromDisplay(name : String):void{
+				var length : Number = name.length;
+				var index : Number = name.indexOf(END_TAG);
+				
+				 for (var annotationIterator : Object in annotations){
+					var annotation : Annotation = annotations[annotationIterator] as Annotation;
+					if (annotation.id+END_TAG == name){
+						if (annotation.fadeDuration > 0){
+							var fade : Fade = new Fade()
+							fade.duration = annotation.fadeDuration*1000;
+							fade.alphaFrom=annotation.alpha;
+							fade.alphaTo=0.0;
+							fade.addEventListener(EffectEvent.EFFECT_END, onFadeOutEnd);
+							fade.target = annotation.image;
+							fade.play();
+						}
+						else{
+							try{
+								annotationsCanvas.removeChild(annotation.image);
+							}
+							catch (error:Error){
+								trace("<Error> " + error.message);
+								}
+						}
+					}
+				}	
+			}
+			
+			public function onVisibleCheckBoxChange():void{
+				this.updateQueuePoints();		
+				annotationsCanvas.removeAllChildren();
+
+			}
+			
+			
+			private function onPlayClick(event:Event):void{
+				videoDisplay.play();
+				
+				dispatchEvent(new PlayerEvent(PlayerEvent.PLAY));
+			}
+			private function onPauseClick(event:Event):void{
+				videoDisplay.pause();
+				dispatchEvent(new PlayerEvent(PlayerEvent.PAUSE));
+
+			}
+			private function onStopClick(event:Event):void{
+				annotationsCanvas.removeAllChildren();
+				videoDisplay.stop();
+				dispatchEvent(new PlayerEvent(PlayerEvent.STOP));
+			}
+			
+			private function onResizeEnd(event:Event):void{
+				var resize : Resize = event.currentTarget as Resize;
+				resize.removeEventListener(EffectEvent.EFFECT_END, onResizeEnd);
+				toggleButton.enabled=true;
+			}			
+			
+			private function onTogleClick(event:Event):void{
+				var resize :Resize;
+				resize = new Resize();
+				resize.target = annotationsBox;
+				resize.addEventListener(EffectEvent.EFFECT_END,onResizeEnd)
+				toggleButton.enabled=false;
+				resize.duration = 1000;
+			if (annotationsBox.height != 0){
+				resize.heightTo=0;
+			}
+			else{
+				resize.heightTo=annotationsHeight;
+			}
+			
+			resize.play();
+			}
+		private function onVideoReady(event:Event):void{
+		}
+		private function onPlayheadUpdate(event:Event):void{
+			progressInput.value = videoDisplay.playheadTime;
+		}
+ 
+ 		private function onProgressChange(event:Event):void{
+ 			videoDisplay.playheadTime = progressInput.value;
+ 			annotationsCanvas.removeAllChildren();
+ 		}
+		]]>
+	</mx:Script>
+	<mx:Binding source="volumeInput.value" destination="videoDisplay.volume"/>
+	<mx:VBox>
+		 <mx:Canvas>
+			 <mx:VideoDisplay id="videoDisplay" autoPlay="true" source="{Helper.getClipsUrl()}" width="854" height="480" 
+			 	cuePointManagerClass="mx.controls.videoClasses.CuePointManager" cuePoint="onCuePoint(event);" ready="onVideoReady(event)"
+			 	 playheadUpdate="onPlayheadUpdate(event)"  />
+			 <mx:Canvas id="annotationsCanvas" width="854" height="480" />
+			 <mx:ProgressBar id="loadingProgress" y="450" label="Loading annotations" mode="manual" progress="0"  color="white" /> 	
+
+		 </mx:Canvas>
+	 		<mx:HBox width="100%" bottom="0" paddingLeft="10" verticalScrollPolicy="off" horizontalScrollPolicy="off">
+				<mx:Canvas height="100%">
+					<mx:Label y="0" text="{Math.round(videoDisplay.playheadTime).toString()} / {Math.round(videoDisplay.totalTime).toString()} s" fontSize="11" />
+					<mx:HSlider y="10" 
+						id="progressInput" 
+						change="onProgressChange(event)" minimum="0.0"
+						maximum="{videoDisplay.totalTime}" >
+					</mx:HSlider>
+				</mx:Canvas>
+				<mx:LinkButton label="Play" click="onPlayClick(event);" />
+				<mx:LinkButton label="Pause" click="onPauseClick(event)" />
+				<mx:LinkButton label="Stop" click="onStopClick(event)" />
+				<mx:Canvas height="100%">
+					<mx:Label text="Volume" />
+					<mx:HSlider y="10" id="volumeInput" minimum="0.0" maximum="1.0" value="{0.75}" />		
+				</mx:Canvas>
+				<mx:LinkButton id="toggleButton" label="Toggle annotations" click="onTogleClick(event)" />
+
+			</mx:HBox>
+		<mx:VBox id="annotationsBox">
+			<mx:DataGrid id="annotationsGrid" width="854" height="128" >
+				<mx:columns>
+					<mx:DataGridColumn dataField="visible" 
+						 headerText="Visible" textAlign="left" editable="true">
+						<mx:itemRenderer>
+	                    	<mx:Component>
+	                        	<mx:CheckBox label="visible" change="onChange(event)">
+	                        	<mx:Script>
+	                            <![CDATA[
+	                                private function onChange(evt:Event):void {
+	                                    data.visible = !data.visible;
+	                                    Videoannotations(this.parentApplication).clipPlayer.onVisibleCheckBoxChange();
+	                                }
+	                            ]]>
+	                        </mx:Script>
+	                        	</mx:CheckBox>
+	                    	</mx:Component>
+	               		 </mx:itemRenderer>
+					</mx:DataGridColumn>
+					<mx:DataGridColumn  dataField="name" editable="false" headerText="Name" textAlign="left" />
+					<mx:DataGridColumn  dataField="author" editable="false" headerText="Author" textAlign="left" />
+					<mx:DataGridColumn dataField="startTime" editable="false" headerText="Start time" textAlign="left" />
+					<mx:DataGridColumn dataField="duration" editable="false" sortDescending="true" headerText="Duration" textAlign="left" />
+					<mx:DataGridColumn dataField="alpha" editable="false" headerText="Alpha" textAlign="left" />
+					<mx:DataGridColumn dataField="fadeDuration" editable="false" headerText="Fade duration" textAlign="left" />
+
+				</mx:columns>
+			</mx:DataGrid>
+		</mx:VBox>
+		
+	</mx:VBox>
+
+</mx:Canvas>

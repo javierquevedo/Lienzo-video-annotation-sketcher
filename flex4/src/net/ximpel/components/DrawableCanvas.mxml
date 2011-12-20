@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml"
+	   creationComplete="onCreationComplete()" backgroundAlpha="0" backgroundColor="red" borderStyle="solid"
+	    horizontalScrollPolicy="off" verticalScrollPolicy="off">
+	<mx:Metadata>
+	    [Event( name="drawComplete", type="net.ximpel.events.DrawEvent") ]
+   	</mx:Metadata>
+	 <mx:Script>
+	 	<![CDATA[
+	 		import mx.managers.CursorManager;
+	 		import mx.managers.PopUpManager;
+	 		import mx.controls.TextArea;
+	 		import net.ximpel.events.DrawEvent;
+	 		import net.ximpel.classes.Constants;
+	 		import net.ximpel.events.AnnotationEvent;
+	 		import mx.styles.StyleManager;
+	 		
+	 		public var editable : Boolean = false;
+	 			 		
+	 		[Bindable]
+	 		public var tool : String = Constants.PENTOOL;
+	 		[Bindable]
+	 		public var thickness : Number = 1.0;
+	 		[Bindable]
+	 		public var lineColor : Number = 1.0;
+	 		[Bindable]
+	 		public var lineAlpha : Number = 1.0;
+	 		
+			[Bindable] public var text : String = "";
+			[Bindable] public var fontFamily : String = "Verdana";
+			[Bindable] public var fontSize : Number = 42;
+			[Bindable] public var fontWeight : Boolean = false;
+			[Bindable] public var textDecoration : Boolean = false;
+			[Bindable] public var fontStyle : Boolean = false;
+			[Bindable] public var fontColor : Number = 1.0;
+			
+	 			 		
+	 		private var startX : Number;
+	 		private var startY : Number;
+	 		private var sampleTextArea : TextArea = new TextArea(); 
+	 		
+	 		public function clear():void{
+
+	 			graphics.clear();
+	 			this.removeAllChildren();
+	 			this.setGraphicsStyle();
+	 		}
+	 		
+	 		private function setGraphicsStyle():void{
+	 			graphics.lineStyle(thickness, 1,1);
+	 		}
+	 		
+	 		private function onCreationComplete():void{
+   	 			graphics.clear();
+        		this.setGraphicsStyle();
+        		updateLabel();
+        		
+				sampleTextArea.styleName="labelStyle";
+        		StyleManager.getStyleDeclaration(".labelStyle").setStyle("borderStyle","none");
+        		StyleManager.getStyleDeclaration(".labelStyle").setStyle("backgroundAlpha",0);
+				sampleTextArea.editable=false;
+            	sampleTextArea.selectable=false;
+            	sampleTextArea.editable=false;
+            	sampleTextArea.width=this.width;
+            	sampleTextArea.height=this.height;
+            	sampleTextArea.horizontalScrollPolicy="off";
+            	sampleTextArea.verticalScrollPolicy="off";
+            	
+
+        		this.addEventListener(MouseEvent.MOUSE_MOVE, onMouseMoveForText);
+	 			this.addEventListener(MouseEvent.MOUSE_DOWN, onMouseDown);
+	 			this.addEventListener(MouseEvent.MOUSE_UP, onMouseUp);
+	 			this.addEventListener(MouseEvent.CLICK, onMouseClick);
+	 			//this.addEventListener(MouseEvent.MOUSE_OUT, onMouseOut);
+
+	 		}
+	 		
+	 		private function onMouseClick(event:MouseEvent):void{
+	 			
+	 		}
+	 		
+	 		private function onMouseDown(event:MouseEvent):void{
+	 			//this.addEventListener(MouseEvent.MOUSE_MOVE, onMouseMove);
+	 			if (editable == false)
+	 				return;
+		 		this.addEventListener(MouseEvent.MOUSE_MOVE, onMouseMove);
+	 			startX = mouseX;
+	 			startY = mouseY;
+                graphics.moveTo(mouseX, mouseY);
+                 this.addEventListener(MouseEvent.MOUSE_MOVE, onMouseMove);
+                  }
+                  
+         	private function onMouseUp(event:MouseEvent):void
+                  {
+                         this.removeEventListener(MouseEvent.MOUSE_MOVE, onMouseMove);					
+	                     dispatchEvent(new DrawEvent(DrawEvent.DRAW_COMPLETE));
+	                     if (tool == Constants.TEXTOOL)
+	                     	this.addChild(sampleTextArea);
+
+                  }
+          	private function onMouseMove(event:MouseEvent):void{
+
+          			switch (tool){
+         				case Constants.SQUARETOOL:
+         				    graphics.clear();
+		          			graphics.lineStyle(thickness, lineColor , lineAlpha);
+	          				graphics.drawRect(startX, startY, mouseX-startX, mouseY-startY);
+	          				break;
+         				case Constants.CIRCLETOOL:
+         				    graphics.clear();
+		          			graphics.lineStyle(thickness, lineColor , lineAlpha);
+	          				graphics.drawCircle(startX+((mouseX-startX)/2), startY+((mouseY-startY)/2),
+	          							Math.sqrt(
+	          									Math.pow((mouseX-startX),2)+
+	          									Math.pow((mouseY-startY),2)
+	          									)/2);
+	          				break;
+         				case Constants.PENTOOL:
+		          			graphics.lineStyle(thickness, lineColor , lineAlpha);
+							graphics.lineTo(mouseX, mouseY);
+	          				break;
+	          			case Constants.LINETOOL:
+	          				graphics.clear();
+		          			graphics.lineStyle(thickness, lineColor , lineAlpha);
+
+	          				graphics.moveTo(startX,startY);
+	          				graphics.lineTo(mouseX,mouseY);
+	          				//graphics.moveTo(startX,startY);
+							break;
+						default:
+							break;
+          			}
+            	}
+            	
+            	private function onMouseMoveForText(event:Event):void{
+            		//CursorManager.setBusyCursor();
+            		if (tool == Constants.TEXTOOL){
+            			if (sampleTextArea.parent == null)
+            				this.addChild(sampleTextArea);
+            			sampleTextArea.visible=true;
+            			sampleTextArea.x = mouseX;
+            			sampleTextArea.y=mouseY;
+            		}
+            		else{
+            			sampleTextArea.visible = false;
+            			
+            		}
+            	}
+       	            
+       	        /*private function onMouseOut(event:Event):void{
+       	        	sampleTextArea.visible=false;
+       	        }*/    
+       	            	
+            	public function updateLabel():void{
+          				StyleManager.getStyleDeclaration(".labelStyle").setStyle("fontSize",fontSize);
+          				StyleManager.getStyleDeclaration(".labelStyle").setStyle("color",fontColor);
+          				StyleManager.getStyleDeclaration(".labelStyle").setStyle("fontFamily",fontFamily);
+          				if (fontWeight == true)
+          					StyleManager.getStyleDeclaration(".labelStyle").setStyle("fontWeight","bold");
+          				else
+          					StyleManager.getStyleDeclaration(".labelStyle").setStyle("fontWeight","normal");
+          				
+          				if (textDecoration == true)
+          					StyleManager.getStyleDeclaration(".labelStyle").setStyle("textDecoration","underline");
+          				else          					
+          					StyleManager.getStyleDeclaration(".labelStyle").setStyle("textDecoration","none");
+          				
+          				if (fontStyle == true)
+          					StyleManager.getStyleDeclaration(".labelStyle").setStyle("fontStyle","italic");
+          				else
+          					StyleManager.getStyleDeclaration(".labelStyle").setStyle("fontStyle","normal");
+            	}
+            	
+          	
+	 	]]>
+	 </mx:Script>
+	 <mx:Binding source="text" destination="sampleTextArea.text" />
+</mx:Canvas>

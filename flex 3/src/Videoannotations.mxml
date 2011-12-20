@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute" 
+	xmlns:ns1="net.ximpel.components.*"
+	 backgroundAlpha="0.0"
+	 preloader="net.ximpel.classes.LienzoPreloader"
+  	initialize="onInitialize()" horizontalScrollPolicy="off" verticalScrollPolicy="off" >
+	<mx:Style source="net/ximpel/styles/default.css"/>
+	<mx:Script>
+		<![CDATA[
+			import mx.core.FlexGlobals;
+			[Bindable]
+			public var clipUrl : String = "http://localhost:3000/data/c919694c-51ee-11df-97fc-40d32dfffe01/video.flv";
+			[Bindable]
+			public var annotationsServerUrl : String = "http://localhost:3000";
+			[Bindable]
+			public var clipId : String = "8";
+			[Bindable]
+			public var autostart : Boolean = false;
+			
+			private function onInitialize():void{
+				if (FlexGlobals.topLevelApplication.parameters.clipUrl)
+					this.clipUrl=FlexGlobals.topLevelApplication.parameters.clipUrl;
+				if (FlexGlobals.topLevelApplication.parameters.annotationsServerUrl)
+					this.annotationsServerUrl= FlexGlobals.topLevelApplication.parameters.annotationsServerUrl;
+				if (FlexGlobals.topLevelApplication.parameters.clipId)
+					this.clipId= FlexGlobals.topLevelApplication.parameters.clipId;
+				if (FlexGlobals.topLevelApplication.parameters.autostart)
+					this.autostart=stringToBool(FlexGlobals.topLevelApplication.parameters.autostart);
+			}
+			
+			//Used to avoid boolean casting problem with different flash players
+			private function stringToBool(string :String):Boolean{
+				if (string=="true")
+					return true
+				else
+					return false;
+			}
+			
+			
+			private function onPlayerPlay(event:Event):void{
+				trace("play");
+			}
+			private function onPlayerPause(event:Event):void{
+				trace("pause");				
+			}
+			private function onPlayerStop(event:Event):void{
+				trace("stop");				
+			}
+		]]>
+	</mx:Script>
+	
+	<mx:Binding source="clipPlayer.videoDisplay.playheadTime.toString()" destination="annotationEditor.startTimeInput.text" />
+	<mx:Binding source="this.clipUrl" destination="clipPlayer.videoDisplay.source" />
+	<mx:Binding source="this.autostart" destination="clipPlayer.videoDisplay.autoPlay" />
+	<ns1:ClipPlayer id="clipPlayer" x="0" y="0" play="onPlayerPlay(event)"
+		pause="onPlayerPause(event)"
+		stop="onPlayerStop(event)">
+	</ns1:ClipPlayer>
+	<ns1:AnnotationEditor save="clipPlayer.getAnnotations(annotationsServerUrl, clipId)"  id="annotationEditor" x="0" y="0"/>
+</mx:Application>

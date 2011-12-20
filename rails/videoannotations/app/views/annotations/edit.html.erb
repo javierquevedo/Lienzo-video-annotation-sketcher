@@ -1,0 +1,14 @@
+
+<% form_for [@clip, @annotation] do |f| %>
+ Name <%= f.text_field :name %> <br />
+ Author<%= f.text_field :author %> <br />
+ Content type <%= f.text_field :contenttype%> <br />
+ Start time <%= f.text_field :starttime %> <br />
+ Duration <%= f.text_field :duration %> <br />
+ Alpha <%= f.text_field :alpha %> <br />
+ Fade duration <%= f.text_field :fadeduration %> <br />
+
+ <%= submit_tag 'Save' %>
+<% end %>
+<br />
+<%= link_to 'Back', clip_annotations_path(@clip) %>

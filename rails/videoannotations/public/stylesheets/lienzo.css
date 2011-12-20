@@ -1,0 +1,90 @@
+/* 
+    Document   : lienzo
+    Created on : Aug 7, 2009, 10:13:25 PM
+    Author     : senc
+    Description:
+        Purpose of the stylesheet follows.
+*/
+
+/* 
+   TODO customize this sample style
+   Syntax recommendation http://www.w3.org/TR/REC-CSS2/
+*/
+
+body {
+    display: block;
+    font-family: Verdana,Arial,Helvetica,sans-serif;
+    font-size: 12px;
+    
+    background-color: #dddddd;
+}
+
+h1 {
+    font-size: 14px;
+    color: #cc9933;
+}
+
+a:link              { color:#cc6600; text-decoration:underline; }
+a:visited           { color:#cc9933; text-decoration:underline; }
+a:hover             { color:#993300; text-decoration:underline;}
+a:active            { color:red; text-decoration:underline; }
+
+#page{
+    padding :20px;
+}
+
+#footerBar{
+    font-size:9px;
+    text-align: center;
+    margin-top : 0px;
+    padding-right :5px;
+    padding-top :5px;
+    padding-left :5px;
+    padding-bottom :5px;
+    border-top-style: solid;
+    border-bottom-style: solid;
+    border-left-style: solid;
+    border-right-style: solid;
+    -webkit-border-radius:5px; /* all corners */
+    border:2px solid #f1c036;
+    background-color: #eaeaea;
+}
+.embedBox{
+    /*margin-left: auto ;
+    margin-right: auto ;*/
+    
+    top: 100px;
+    right: 10px;
+    margin-right: 0px;
+    text-align: right;
+    padding-right :5px;
+    padding-top :5px;
+    padding-left :5px;
+    padding-bottom :5px;
+    -webkit-border-radius:5px; /* all corners */
+    border:2px solid #fc0; /* border color, per usual */
+    background-color: #eaeaea;
+    width: 200px;
+    position: absolute;
+}
+
+.topbar{
+    margin-right: 0px;
+    font-size: 12px;
+    text-align: right;
+    padding-right :5px;
+    padding-top :5px;
+    padding-left :5px;
+    padding-bottom :5px;
+    -webkit-border-radius:5px; /* all corners */
+    border:2px solid #fc0; /* border color, per usual */
+    background-color: #eaeaea;
+}
+
+.linkBar{
+    margin-left :10px;
+}
+
+.loginForm{
+    padding: 10px;
+}

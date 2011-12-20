@@ -1,0 +1,33 @@
+<div class="embedBox">
+<table>
+<tr>
+  <td>Embed code</td>
+  <td><input size="20" type="text" readonly  value="<embed wmode=&quot;transparent&quot;  bgcolor=&quot;#FFFFFF&quot; src=&quot;<%= @serverUrl %>/flash/Videoannotations.swf?clipUrl=<%= @serverUrl %>/data/<%=@clip.uuid%>/<%=@clip.filename%>&annotationsServerUrl=<%= @serverUrl %>&clipId=<%=  @clip.id %>&quot&autostart=false; type=&quot;application/x-shockwave-flash&quot;  width=&quot;100%&quot; height=&quot;665&quot;>
+  </embed>" /></td>
+</tr>
+<tr>
+  <td>URL</td>
+  <td><input size="20" type="text" value="<%= ApplicationHelper.serverUrl %><%= clip_path(@clip) %>" readonly /></td>
+</tr>
+</table>
+</div>
+<div id="page">
+<h1> Showing clip <%= @clip.name %> </h1>
+<p>Download <a href="../data/<%= @clip.uuid %>/<%= @clip.filename %>"><%= @clip.name %> </a></p>
+
+<center>
+<object width="100%" height="100%">
+<param name="movie" value="Videoannotations.swf" />
+<param name="wmode" value="transparent">
+<embed wmode="transparent" bgcolor="#FFFFFF" src="/flash/Videoannotations.swf?clipUrl=<%= @serverUrl %>/data/<%=@clip.uuid%>/<%=@clip.filename%>&annotationsServerUrl=<%= @serverUrl %>&clipId=<%=  @clip.id %>&autostart=false" type="application/x-shockwave-flash"  width="100%" height="665">
+</embed>
+</object>
+</center>
+
+</div>
+<div class="linkBar" >
+<table cellpadding="0" cellspacing="0"><tr>
+  <td><%= link_to image_tag('backIcon.png', :border=> 0) , clips_path %></td>
+</tr>
+</table>
+</div>

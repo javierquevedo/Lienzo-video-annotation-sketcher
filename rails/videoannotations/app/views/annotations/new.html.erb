@@ -1,0 +1,20 @@
+<h1>New annotation for clip <%= @clip.name %>
+</h1>
+
+<% form_tag [@clip, @annotation], :multipart => true do %>
+  Name <%=  text_field_tag 'annotation[name]', nil, :duration=> 'annotation[name]'%> <br />
+  Start time <%=  text_field_tag 'annotation[starttime]', nil, :duration=> 'annotation[starttime]'%> <br />
+  Duration <%=  text_field_tag 'annotation[duration]', nil, :duration=> 'annotation[duration]'%> <br />
+  Content <%=  text_field_tag 'annotation[content]', nil, :duration=> 'annotation[content]'%> <br />
+
+  <%=  submit_tag "Create " %>
+<% end %>
+
+<%= link_to 'Back', clips_path %>
+
+
+    t.string   "name"
+    t.string   "filename"
+    t.integer  "starttime"
+    t.integer  "duration"
+    t.integer  "clip_id"

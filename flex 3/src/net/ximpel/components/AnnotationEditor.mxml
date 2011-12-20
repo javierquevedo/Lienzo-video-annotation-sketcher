@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml"  xmlns:ns1="net.ximpel.components.*"
+	 horizontalScrollPolicy="off" verticalScrollPolicy="off"
+	  creationComplete="onCreationComplete()">
+	<mx:Metadata>
+	    [Event( name="save", type="net.ximpel.events.AnnotationEvent") ]
+   	</mx:Metadata>
+<mx:Script>
+	<![CDATA[
+		import mx.controls.Alert;
+		import mx.controls.Button;
+		import mx.controls.ButtonBar;
+		import mx.controls.Image;
+		import mx.controls.Label;
+		import mx.core.Application;
+		import mx.effects.Resize;
+		import mx.effects.WipeLeft;
+		import mx.events.EffectEvent;
+		import mx.managers.PopUpManager;
+		import mx.rpc.events.FaultEvent;
+		import mx.rpc.events.ResultEvent;
+		import mx.rpc.http.HTTPService;
+		
+		import net.ximpel.classes.Annotation;
+		import net.ximpel.classes.Constants;
+		import net.ximpel.classes.Helper;
+		import net.ximpel.classes.Snapshot;
+		import net.ximpel.events.AnnotationEvent;
+		
+		
+		private var serverUrl : String = Helper.getAnnotationsServerUrl();
+		private var loadingView : LoadingView = new LoadingView();		
+		private var canvasWidth : Number;
+
+		
+		private function onCreationComplete():void{
+			canvasWidth = editCanvas.width;
+		}
+		
+		private function onSaveClick(event:Event):void{
+				PopUpManager.addPopUp(loadingView, Application(this.parentApplication), true);
+		 	  	PopUpManager.centerPopUp(loadingView);				
+				loadingView.loadingLabel.text = "Saving";
+				
+				var uploadDataService : HTTPService = new HTTPService();
+				uploadDataService.url = Helper.getAnnotationsServerUrl()+"/clips/"+Helper.getClipId()+"/annotations.xml"
+				uploadDataService.contentType="application/xml";
+				uploadDataService.resultFormat="e4x";
+				uploadDataService.method="POST";
+				var request:XML = <annotation></annotation>;
+				request.appendChild(<author>{this.authorInput.text}</author>);
+				request.appendChild(<name>{this.nameInput.text}</name>);
+				request.appendChild(<duration>{this.durationInput.value.toString()}</duration>);
+				request.appendChild(<starttime>{parseFloat(this.startTimeInput.text)}</starttime>);
+				request.appendChild(<alpha>{this.alphaInput.value.toString()}</alpha>);
+				request.appendChild(<fadeduration>{this.fadeDurationInput.value.toString()}</fadeduration>);
+				request.appendChild(<content>{Snapshot.capture(this.paintEditor.frameBuffer, {format:"png"})}</content>);
+				uploadDataService.request = request;
+				uploadDataService.addEventListener(ResultEvent.RESULT, onUploadDataResult);
+				uploadDataService.addEventListener(FaultEvent.FAULT, onUploadDataFault);
+				uploadDataService.send();	
+						
+				}
+		private function onClearClick(event:MouseEvent):void{
+				paintEditor.clearFrameBuffer();
+		}
+
+		private function onUploadDataResult(event:ResultEvent):void{
+			trace("result");
+			PopUpManager.removePopUp(loadingView);
+			dispatchEvent(new AnnotationEvent(AnnotationEvent.SAVE_COMPLETE));
+			paintEditor.clearFrameBuffer();
+		}	
+		
+		private function onUploadDataFault(event:FaultEvent):void{
+			trace("fault");
+			PopUpManager.removePopUp(loadingView);
+			Alert.show("Could not save annotation", "Unable to connect");
+			dispatchEvent(new AnnotationEvent(AnnotationEvent.SAVE_FAULT));
+		}	
+		
+		private function onToolClick(event:Event, tool : String):void{
+			paintEditor.tool = tool;	
+		}
+		
+		private function onLineColorPick(event:Event):void{
+			paintEditor.lineColor=lineColorPicker.selectedColor;
+		}
+		
+		private function onResizeEnd(event:Event):void{
+			var resize : Resize = event.currentTarget as Resize;
+			resize.removeEventListener(EffectEvent.EFFECT_END, onResizeEnd);
+			toggleButton.enabled=true;
+			if (editCanvas.width > 0){
+				clearButton.enabled=true;
+				saveButton.enabled=true;	
+			}
+			else
+				editCanvas.styleName="EditorToolPanelHidden";	
+		}
+
+		private function onToolChange(event:Event):void{
+			paintEditor.changeTool();
+		}
+		
+		private function onShowHideClick(event:Event):void{
+			var resize : Resize;
+				resize = new Resize();
+				resize.target = editCanvas;
+				resize.addEventListener(EffectEvent.EFFECT_END,onResizeEnd)
+
+				toggleButton.enabled=false;
+				resize.duration = 1000;
+			if (editCanvas.width != 0){
+				resize.widthTo=0;
+				clearButton.enabled=false;
+				saveButton.enabled=false;
+			}
+			else{
+				resize.widthTo=canvasWidth;
+			}
+			editCanvas.styleName="EditorToolPanel";	
+			resize.play();
+		}
+		
+		private function onUndoClick(event:Event):void{
+			paintEditor.undo();
+		}
+		
+		private function onFontChange(event:Event):void{
+			paintEditor.frameBuffer.updateLabel();
+		}
+
+		private function onFontStyleChange(event:Event):void{
+			paintEditor.frameBuffer.updateFontStyle();
+		}
+		
+		private function onTextSizeChange(event:Event):void{
+			paintEditor.frameBuffer.updateTextSizeLabel();
+		}
+		
+		private function onFontWeightChange(event:Event):void{
+			paintEditor.frameBuffer.updateFontWeight();
+		}
+		
+		private function onTextDecorationChange(event:Event):void{
+			paintEditor.frameBuffer.updateTextDecoration();
+		}
+		
+		private function onFontFamilyChange(event:Event):void{
+			paintEditor.frameBuffer.updateFontFamily();
+		}
+		
+		// TODO Specific text content change function
+		// Performance tweak
+
+	]]>
+</mx:Script>
+		<mx:Binding source="lineColorPicker.selectedColor" destination="paintEditor.lineColor" />
+		<mx:Binding source="thicknessSlider.value" destination="paintEditor.thickness" />
+		<mx:Binding source="lineAlphaSlider.value" destination="paintEditor.lineAlpha" />
+		<mx:Binding source="lineColorPicker.selectedColor" destination="paintEditor.fontColor" />
+		<mx:Binding source="int(sizeInput.selectedItem)" destination="paintEditor.fontSize" />
+		<mx:Binding source="underlineInput.selected" destination="paintEditor.textDecoration" />
+		<mx:Binding source="italicInput.selected" destination="paintEditor.fontStyle" />
+		<mx:Binding source="boldInput.selected" destination="paintEditor.fontWeight" />
+		<mx:Binding source="textInput.text" destination="paintEditor.text" />
+		<mx:Binding source="String(fontFamilyInput.selectedItem)" destination="paintEditor.fontFamily" />
+		<mx:Binding source="Button(toolBar.getChildAt(toolBar.selectedIndex)).label" destination="paintEditor.tool" />		
+
+		<mx:HBox horizontalGap="2">
+			<mx:VBox horizontalAlign="right">
+				<mx:Canvas id="canvas" width="854" height="480">
+					<ns1:PaintEditor id="paintEditor" backgroundAlpha="0" width="854" height="480" horizontalScrollPolicy="off" verticalScrollPolicy="off" />
+				</mx:Canvas>
+				<mx:HBox>
+					<mx:LinkButton id="toggleButton" styleName="EditorToolPanel" label="Toggle tools" click="onShowHideClick(event);"/>
+				</mx:HBox>
+			</mx:VBox>
+			<mx:Canvas id="editCanvas" styleName="EditorToolPanel" backgroundAlpha="1.0" 
+				 verticalScrollPolicy="off" horizontalScrollPolicy="off">
+				<mx:VBox id="editBox" paddingTop="0" paddingLeft="4" paddingRight="4" height="647" horizontalScrollPolicy="off" verticalScrollPolicy="off">
+						<mx:Label text="Annotations Name" />
+						<mx:TextInput id="nameInput"  text="Annotation"/>
+						<mx:Label text="Start time" />
+						<mx:TextInput id="startTimeInput" editable="true" />
+						<mx:Label text="Authors name" />
+						<mx:TextInput id="authorInput"  text="Anonymous"/>
+						<mx:Label text="Duration" />
+						<mx:NumericStepper id="durationInput" value="3" stepSize="1" maximum="{Number.MAX_VALUE}" width="160"/>
+						<mx:Label text="Alpha {(Math.round(alphaInput.value*100)/100).toString()}" />
+						<mx:HSlider minimum="0.0" maximum="1.0" id="alphaInput" value="1" height="8"/>
+						<mx:Label text="Fade duration {(Math.round(fadeDurationInput.value*100)/100).toString()}" />
+						<mx:HSlider minimum="0" maximum="{durationInput.value/2}" id="fadeDurationInput" value="0.25"   height="8"/>
+						<mx:HBox verticalAlign="middle" height="100%" horizontalAlign="center" paddingLeft="3">
+							<mx:ToggleButtonBar  itemClick ="onToolChange(event)"  id="toolBar" direction="vertical" height="100%" verticalAlign="middle">
+								<mx:dataProvider>
+									<mx:String>{Constants.PENTOOL}</mx:String>
+									<mx:String>{Constants.LINETOOL}</mx:String>
+									<mx:String>{Constants.SQUARETOOL}</mx:String>
+									<mx:String>{Constants.CIRCLETOOL}</mx:String>
+									<mx:String>{Constants.TEXTOOL}</mx:String>
+									<!-- Uncomment to "enable erasing tool " -->
+									<!-- <mx:String>{Constants.ERASERTOOL}</mx:String> -->
+								</mx:dataProvider>
+							</mx:ToggleButtonBar>	
+							<mx:VBox horizontalAlign="center">
+								<mx:ColorPicker id="lineColorPicker" change="onFontChange(event)" />
+								<mx:Label text="Thickness {(Math.round(thicknessSlider.value*100)/100).toString()}"  width="90"/>						
+								<mx:HSlider id="thicknessSlider" minimum="0.5" maximum="10.0" value="2.0" width="83" />
+								<mx:Label text="Alpha {(Math.round(lineAlphaSlider.value*100)/100).toString()}"  width="83"/>						
+								<mx:HSlider id="lineAlphaSlider" minimum="0.01" maximum="1.0" value="1.0" width="83" />
+							</mx:VBox>						
+						</mx:HBox>
+						<mx:VBox horizontalGap="0" paddingBottom="0" paddingTop="0">	
+							<mx:Label text="Text" fontWeight="bold" />
+							<mx:TextArea id="textInput" text="Text" width="100%" height="100%" />
+							<mx:Label text="Font Family" />
+							<mx:ComboBox id="fontFamilyInput" selectedIndex="5" width="100%" change="onFontFamilyChange(event)">
+							<mx:Array>
+							<mx:String>Arial</mx:String>
+							<mx:String>Courier New</mx:String>
+							<mx:String>Georgia</mx:String>
+							<mx:String>Times New Roman</mx:String> 
+							<mx:String>Verdana</mx:String>
+							</mx:Array>
+							</mx:ComboBox>
+						</mx:VBox>
+						<mx:Label text="Size" />
+						<mx:ComboBox id="sizeInput" change="onTextSizeChange(event)" selectedIndex="5">
+							<mx:ArrayCollection>
+								<mx:int>8</mx:int>
+								<mx:int>9</mx:int>
+								<mx:int>10</mx:int>
+								<mx:int>11</mx:int>
+								<mx:int>12</mx:int>
+								<mx:int>14</mx:int>
+								<mx:int>16</mx:int>
+								<mx:int>18</mx:int>
+								<mx:int>20</mx:int>
+								<mx:int>22</mx:int>
+								<mx:int>24</mx:int>
+								<mx:int>26</mx:int>
+								<mx:int>28</mx:int>
+								<mx:int>36</mx:int>
+								<mx:int>48</mx:int>
+								<mx:int>72</mx:int>
+								<mx:int>96</mx:int>
+							</mx:ArrayCollection>
+						</mx:ComboBox>
+						<mx:HBox width="100%" horizontalAlign="center">
+							<mx:CheckBox id="boldInput" label="B" fontWeight="bold" valueCommit="onFontWeightChange(event)" />
+							<mx:CheckBox id="underlineInput" label="U"  textDecoration="underline" valueCommit="onTextDecorationChange(event)"/>
+							<mx:CheckBox id="italicInput" label="I" fontStyle="italic" valueCommit="onFontStyleChange(event)"/>
+						</mx:HBox>	
+						<mx:HBox>
+							<mx:LinkButton id="undoButton" label="Undo" click="onUndoClick(event);" />
+						<mx:LinkButton id="clearButton" label="Clear" click="onClearClick(event);" />
+						<mx:LinkButton id="saveButton" label="Save" click="onSaveClick(event);" />
+						</mx:HBox>			
+					</mx:VBox>
+			</mx:Canvas>	
+		</mx:HBox>	
+</mx:Canvas>

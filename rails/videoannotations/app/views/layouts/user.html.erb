@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+       "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html;charset=UTF-8" />
+  <title>Lienzo <%= controller.action_name %></title>
+  <%= stylesheet_link_tag 'lienzo' %>
+  <%= javascript_include_tag :defaults %>
+</head>
+<body>
+<div class="topbar">
+  <table style="width:100%;">
+    <tr>
+      <td style="text-align:left;">
+        <%= link_to image_tag('logo.png', :border=> 0), home_path %>
+      </td>
+      <td style="text-align:right;">
+        <% if logged_in? %>
+            <%= link_to 'My Clips', clips_path   %> |
+            <%= link_to 'My settings', :controller => "settings", :action => "index" %> |
+           <%= link_to 'Logout '+ current_user.login , logout_path %>
+        <% else %>
+            <%= link_to 'Login', login_path %> |
+            <%= link_to 'Signup', signup_path %>
+        <% end %> 
+       </td>
+    </tr>
+  </table>
+</div>
+
+<div class="navigationbar">
+
+</div>
+<p style="color: red"><%= flash[:warning] %></p>
+<p style="color: green"><%= flash[:notice] %></p>
+
+<%= yield  %>
+
+<div id="footerBar">
+Lienzo 2009.
+Javier Quevedo Fernández - VU Univerity of Amsterdam <br />
+Terms of Use - Privacy agreement
+</div>
+</body>
+</html>

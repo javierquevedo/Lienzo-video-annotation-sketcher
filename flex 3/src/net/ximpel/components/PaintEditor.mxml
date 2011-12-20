@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:ns1="net.ximpel.components.*" >
+	<mx:Script>
+		<![CDATA[
+			import net.ximpel.classes.Constants;
+			import net.ximpel.classes.Snapshot;
+			[Bindable]
+			public var tool : String = Constants.PENTOOL;
+			
+	 		[Bindable]
+	 		public var thickness : Number = 1.0;
+			[Bindable]
+	 		public var lineColor : Number = 1.0;
+	 		[Bindable]
+	 		public var lineAlpha : Number = 1.0;
+	 		[Bindable] public var text : String = "TESTTT";
+			[Bindable] public var fontFamily : String = "Verdana";
+			[Bindable] public var fontSize : Number = 22;
+			// false = normal, true = bold
+			[Bindable] public var fontWeight :Boolean = false;
+			// false = none, true = underline
+			[Bindable] public var textDecoration : Boolean = false;
+			// false = normal, true = italic
+			[Bindable] public var fontStyle : Boolean = false;
+			[Bindable] public var fontColor : Number = 1.0;
+	 		
+			public function clearFrameBuffer():void{
+				undoBuffer.clear();
+				Snapshot.clone(frame, undoBuffer);
+				frameBuffer.clear();
+				frame.clear();
+			}
+			
+			public function undo():void{
+				frameBuffer.clear();
+				frame.clear()
+				Snapshot.clone(undoBuffer, frame);
+			}
+			
+			public function changeTool():void{
+				// Function needed for Erase functionality
+				// Should swap buffers to allow the user to interacti
+				if (tool == Constants.ERASERTOOL)
+					bringFrameToFront();
+				else
+					bringFrameBufferToFront();
+			}
+
+			
+			private function bringFrameToFront():void{
+				if (this.getChildIndex(frameBuffer) > this.getChildIndex(frame)){
+					this.removeChildAt(this.getChildIndex(frame));
+					this.addChildAt(frame, this.getChildIndex(frameBuffer) +1);			
+				}			
+			}
+			
+			private function bringFrameBufferToFront():void{
+				if (this.getChildIndex(frameBuffer) < this.getChildIndex(frame)){
+					this.removeChildAt(this.getChildIndex(frameBuffer));
+					this.addChildAt(frameBuffer, this.getChildIndex(frame) +1);			
+				}	
+			}
+					
+			private function onDrawComplete(event:Event):void{
+				Snapshot.clone(frame, undoBuffer);
+				Snapshot.paste(frameBuffer, frame);
+				frameBuffer.clear();
+			}
+			
+		]]>
+	</mx:Script>
+	<mx:Binding source="tool" destination="frameBuffer.tool" />
+	<mx:Binding source="thickness" destination="frameBuffer.thickness" />
+	<mx:Binding source="lineAlpha" destination="frameBuffer.lineAlpha" />
+	<mx:Binding source="lineColor" destination="frameBuffer.lineColor" />
+	<mx:Binding source="fontColor" destination="frameBuffer.fontColor" />
+	<mx:Binding source="fontSize" destination="frameBuffer.fontSize" />
+	<mx:Binding source="fontWeight" destination="frameBuffer.fontWeight" />
+	<mx:Binding source="fontStyle" destination="frameBuffer.fontStyle" />
+	<mx:Binding source="textDecoration" destination="frameBuffer.textDecoration" />
+	<mx:Binding source="text" destination="frameBuffer.text" />
+	<mx:Binding source="fontFamily" destination="frameBuffer.fontFamily" />
+	<ns1:DrawableCanvas id="undoBuffer" visible="false" editable="false" x="0" y="0" width="100%"/>
+	<ns1:DrawableCanvas id="frame" editable="true" x="0" y="0" width="100%">
+	</ns1:DrawableCanvas>
+	<ns1:DrawableCanvas id="frameBuffer" editable="true" x="0" y="0" width="100%" height="100%" drawComplete="onDrawComplete(event)">
+	</ns1:DrawableCanvas>
+</mx:Canvas>

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute" 
+	xmlns:ns1="net.ximpel.components.*"
+	 preloader="net.ximpel.classes.LienzoPreloader"
+  	initialize="onInitialize()" horizontalScrollPolicy="off" verticalScrollPolicy="off" >
+	<mx:Style source="net/ximpel/styles/default.css"/>
+	<mx:Script>
+		<![CDATA[
+			[Bindable]
+			public var clipUrl : String = "http://localhost:3000/data/1ebea400-512e-11df-92bd-0ceee6c965a7/rade_conv.flv";
+			[Bindable]
+			public var annotationsServerUrl : String = "http://localhost:3000";
+			[Bindable]
+			public var clipId : String = "5";
+			[Bindable]
+			public var autostart : Boolean = false;
+			
+			private function onInitialize():void{
+				if (Application.application.parameters.clipUrl)
+					this.clipUrl=Application.application.parameters.clipUrl;
+				if (Application.application.parameters.annotationsServerUrl)
+					this.annotationsServerUrl= Application.application.parameters.annotationsServerUrl;
+				if (Application.application.parameters.clipId)
+					this.clipId= Application.application.parameters.clipId;
+				if (Application.application.parameters.autostart)
+					this.autostart=stringToBool(Application.application.parameters.autostart);
+			}
+			
+			//Used to avoid boolean casting problem with different flash players
+			private function stringToBool(string :String):Boolean{
+				if (string=="true")
+					return true
+				else
+					return false;
+			}
+			
+			
+			private function onPlayerPlay(event:Event):void{
+				trace("play");
+			}
+			private function onPlayerPause(event:Event):void{
+				trace("pause");				
+			}
+			private function onPlayerStop(event:Event):void{
+				trace("stop");				
+			}
+		]]>
+	</mx:Script>
+	
+	<mx:Binding source="clipPlayer.videoDisplay.playheadTime.toString()" destination="annotationEditor.startTimeInput.text" />
+	<mx:Binding source="this.clipUrl" destination="clipPlayer.videoDisplay.source" />
+	<mx:Binding source="this.autostart" destination="clipPlayer.videoDisplay.autoPlay" />
+	<ns1:ClipPlayer id="clipPlayer" x="0" y="0" play="onPlayerPlay(event)"
+		pause="onPlayerPause(event)"
+		stop="onPlayerStop(event)">
+	</ns1:ClipPlayer>
+	<ns1:AnnotationEditor save="clipPlayer.getAnnotations(annotationsServerUrl, clipId)"  id="annotationEditor" x="0" y="0"/>
+</mx:Application>
