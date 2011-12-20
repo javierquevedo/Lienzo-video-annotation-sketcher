@@ -1,5 +1,8 @@
 Javier Quevedo Fernández 2009.
 
+Try this out at:
+http://lienzo.yoteinvoco.com/flash/Videoannotations.swf?clipUrl=http://lienzo.yoteinvoco.com/data/83485173/video.flv&annotationsServerUrl=http://lienzo.yoteinvoco.com&clipId=5&quot&autostart=true
+
 Project written in Ruby on Rails and Adobe Flex (3.0/4.0).
 
 Website -> Rails 2
@@ -7,7 +10,7 @@ WebApp -> Flex
 
 	Installation:
 -----------------------------
-Website:
+
 
 
 
