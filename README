@@ -10,7 +10,8 @@ WebApp -> Flex
 
 	Installation:
 -----------------------------
-
+Flex -> Download Flex Builder 4.0 or avobe. Open the project in the Flex Folder, and click on Run.
+Rails -> Instal Ruby 1.8.7, RubyGems and Rails. Run the migration scripts using "rake db:migrare" and run the server with the command "rails script/server"
 
 
 
